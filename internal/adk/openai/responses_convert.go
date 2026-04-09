@@ -147,7 +147,6 @@ func toResponsesInputItem(content *genai.Content) ([]ResponsesInputItem, error) 
 			}
 			toolCallItems = append(toolCallItems, ResponsesInputItem{
 				Type:      "function_call",
-				ID:        part.FunctionCall.ID,
 				CallID:    part.FunctionCall.ID,
 				Name:      part.FunctionCall.Name,
 				Arguments: string(argsJSON),
