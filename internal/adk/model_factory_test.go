@@ -65,6 +65,7 @@ func TestTestOpenAIConnection_RetriesAlternateTokenParam(t *testing.T) {
 		APIKey:         "test-key",
 		ModelName:      "prod-assistant",
 		TokenParamMode: models.OpenAITokenParamAuto,
+		ForceStream:    true,
 	}
 
 	if err := factory.TestConnection(context.Background(), config); err != nil {
@@ -76,8 +77,14 @@ func TestTestOpenAIConnection_RetriesAlternateTokenParam(t *testing.T) {
 	if _, ok := requestBodies[0]["max_tokens"]; !ok {
 		t.Fatalf("first request should use max_tokens: %+v", requestBodies[0])
 	}
+	if got, ok := requestBodies[0]["stream"]; !ok || got != true {
+		t.Fatalf("first request should set stream=true: %+v", requestBodies[0])
+	}
 	if _, ok := requestBodies[1]["max_completion_tokens"]; !ok {
 		t.Fatalf("second request should use max_completion_tokens: %+v", requestBodies[1])
+	}
+	if got, ok := requestBodies[1]["stream"]; !ok || got != true {
+		t.Fatalf("second request should set stream=true: %+v", requestBodies[1])
 	}
 }
 
@@ -112,6 +119,7 @@ func TestDetectOpenAISystemRole_RetriesAlternateTokenParam(t *testing.T) {
 		APIKey:         "test-key",
 		ModelName:      "prod-assistant",
 		TokenParamMode: models.OpenAITokenParamAuto,
+		ForceStream:    true,
 	}
 
 	if unsupported := factory.DetectSystemRoleSupport(context.Background(), config); unsupported {
@@ -120,7 +128,13 @@ func TestDetectOpenAISystemRole_RetriesAlternateTokenParam(t *testing.T) {
 	if len(requestBodies) != 2 {
 		t.Fatalf("request count = %d, want 2", len(requestBodies))
 	}
+	if got, ok := requestBodies[0]["stream"]; !ok || got != true {
+		t.Fatalf("first request should set stream=true: %+v", requestBodies[0])
+	}
 	if _, ok := requestBodies[1]["max_completion_tokens"]; !ok {
 		t.Fatalf("second request should use max_completion_tokens: %+v", requestBodies[1])
+	}
+	if got, ok := requestBodies[1]["stream"]; !ok || got != true {
+		t.Fatalf("second request should set stream=true: %+v", requestBodies[1])
 	}
 }

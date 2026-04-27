@@ -83,6 +83,7 @@ export namespace hottrend {
 	}
 
 }
+
 export namespace main {
 	
 	export class EnhancePromptRequest {
@@ -242,6 +243,7 @@ export namespace models {
 	    timeout: number;
 	    isDefault: boolean;
 	    useResponses: boolean;
+	    forceStream: boolean;
 	    noSystemRole: boolean;
 	    project: string;
 	    location: string;
@@ -265,6 +267,7 @@ export namespace models {
 	        this.timeout = source["timeout"];
 	        this.isDefault = source["isDefault"];
 	        this.useResponses = source["useResponses"];
+	        this.forceStream = source["forceStream"];
 	        this.noSystemRole = source["noSystemRole"];
 	        this.project = source["project"];
 	        this.location = source["location"];
@@ -1923,3 +1926,4 @@ export namespace tools {
 	}
 
 }
+

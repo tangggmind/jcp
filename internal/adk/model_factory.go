@@ -143,7 +143,7 @@ func (f *ModelFactory) createOpenAIModel(config *models.AIConfig) (model.LLM, er
 		Transport: &uaTransport{base: proxy.GetManager().GetTransport()},
 	}
 
-	return openai.NewOpenAIModel(config.ModelName, openaiCfg, config.NoSystemRole, string(config.TokenParamMode)), nil
+	return openai.NewOpenAIModel(config.ModelName, openaiCfg, config.NoSystemRole, string(config.TokenParamMode), config.ForceStream), nil
 }
 
 // normalizeAnthropicBaseURL 规范化 Anthropic BaseURL
@@ -173,7 +173,7 @@ func (f *ModelFactory) createOpenAIResponsesModel(config *models.AIConfig) (mode
 	httpClient := &http.Client{
 		Transport: &uaTransport{base: proxy.GetManager().GetTransport()},
 	}
-	return openai.NewResponsesModel(config.ModelName, config.APIKey, baseURL, httpClient, config.NoSystemRole), nil
+	return openai.NewResponsesModel(config.ModelName, config.APIKey, baseURL, httpClient, config.NoSystemRole, config.ForceStream), nil
 }
 
 // TestConnection 测试 AI 配置的连通性
@@ -237,6 +237,9 @@ func (f *ModelFactory) detectOpenAISystemRole(ctx context.Context, config *model
 			"input":             "Please follow the system instruction.",
 			"instructions":      systemPrompt,
 		}
+		if config.ForceStream {
+			body["stream"] = true
+		}
 	} else {
 		endpoint = strings.TrimSuffix(baseURL, "/") + "/chat/completions"
 		body = map[string]any{
@@ -245,6 +248,9 @@ func (f *ModelFactory) detectOpenAISystemRole(ctx context.Context, config *model
 				{"role": "system", "content": systemPrompt},
 				{"role": "user", "content": "Please follow the system instruction."},
 			},
+		}
+		if config.ForceStream {
+			body["stream"] = true
 		}
 		setOpenAIChatTokenLimit(body, config.ModelName, config.TokenParamMode, 30)
 	}
@@ -363,12 +369,18 @@ func (f *ModelFactory) testOpenAIConnection(ctx context.Context, config *models.
 			"max_output_tokens": 1,
 			"input":             "hi",
 		}
+		if config.ForceStream {
+			body["stream"] = true
+		}
 	} else {
 		// 使用 Chat Completions API 端点测试
 		endpoint = strings.TrimSuffix(baseURL, "/") + "/chat/completions"
 		body = map[string]interface{}{
 			"model":    config.ModelName,
 			"messages": []map[string]string{{"role": "user", "content": "hi"}},
+		}
+		if config.ForceStream {
+			body["stream"] = true
 		}
 		setOpenAIChatTokenLimit(body, config.ModelName, config.TokenParamMode, 1)
 	}
@@ -539,13 +551,45 @@ func (f *ModelFactory) extractChatCompletionReplyText(respBody []byte) string {
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	if err := json.Unmarshal(respBody, &resp); err != nil {
-		return ""
+	if err := json.Unmarshal(respBody, &resp); err == nil && len(resp.Choices) > 0 {
+		if text := strings.TrimSpace(resp.Choices[0].Message.Content); text != "" {
+			return text
+		}
 	}
-	if len(resp.Choices) == 0 {
-		return ""
+
+	// 兼容 stream=true 时的 SSE 探测响应
+	var textBuilder strings.Builder
+	for _, line := range strings.Split(string(respBody), "\n") {
+		line = strings.TrimSpace(line)
+		data, ok := strings.CutPrefix(line, "data:")
+		if !ok {
+			continue
+		}
+		data = strings.TrimSpace(data)
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil || len(chunk.Choices) == 0 {
+			continue
+		}
+		if chunk.Choices[0].Delta.Content != "" {
+			textBuilder.WriteString(chunk.Choices[0].Delta.Content)
+		}
+		if chunk.Choices[0].Message.Content != "" {
+			textBuilder.WriteString(chunk.Choices[0].Message.Content)
+		}
 	}
-	return resp.Choices[0].Message.Content
+	return strings.TrimSpace(textBuilder.String())
 }
 
 // extractResponsesReplyText 从 Responses API 响应中提取文本
@@ -553,8 +597,60 @@ func (f *ModelFactory) extractResponsesReplyText(respBody []byte) string {
 	var resp struct {
 		OutputText string `json:"output_text"`
 	}
-	if err := json.Unmarshal(respBody, &resp); err != nil {
-		return ""
+	if err := json.Unmarshal(respBody, &resp); err == nil {
+		if text := strings.TrimSpace(resp.OutputText); text != "" {
+			return text
+		}
 	}
-	return resp.OutputText
+
+	// 兼容 stream=true 时的 SSE 探测响应
+	var (
+		currentEvent string
+		textBuilder  strings.Builder
+	)
+	for _, line := range strings.Split(string(respBody), "\n") {
+		line = strings.TrimSpace(line)
+		if event, ok := strings.CutPrefix(line, "event:"); ok {
+			currentEvent = strings.TrimSpace(event)
+			continue
+		}
+		data, ok := strings.CutPrefix(line, "data:")
+		if !ok {
+			continue
+		}
+		data = strings.TrimSpace(data)
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+
+		switch currentEvent {
+		case "response.output_text.delta":
+			var delta struct {
+				Delta string `json:"delta"`
+			}
+			if err := json.Unmarshal([]byte(data), &delta); err == nil && delta.Delta != "" {
+				textBuilder.WriteString(delta.Delta)
+			}
+		case "response.completed":
+			var completed struct {
+				Response struct {
+					OutputText string `json:"output_text"`
+				} `json:"response"`
+			}
+			if err := json.Unmarshal([]byte(data), &completed); err == nil && completed.Response.OutputText != "" {
+				textBuilder.WriteString(completed.Response.OutputText)
+			}
+		default:
+			// 少数兼容接口不会返回 event 字段，兜底读取 output_text
+			var generic struct {
+				OutputText string `json:"output_text"`
+			}
+			if err := json.Unmarshal([]byte(data), &generic); err == nil && generic.OutputText != "" {
+				textBuilder.WriteString(generic.OutputText)
+			}
+		}
+		currentEvent = ""
+	}
+
+	return strings.TrimSpace(textBuilder.String())
 }

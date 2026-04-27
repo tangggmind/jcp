@@ -12,7 +12,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v0.7.0
 	github.com/run-bigpig/go-github-selfupdate v1.0.1
 	github.com/sashabaranov/go-openai v1.41.2
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	golang.org/x/text v0.31.0
 	google.golang.org/adk v0.4.0
 	google.golang.org/genai v1.43.0
@@ -21,6 +21,7 @@ require (
 require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

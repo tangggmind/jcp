@@ -23,6 +23,8 @@ interface AIConfig {
   isDefault: boolean;
   // OpenAI Responses API 开关
   useResponses: boolean;
+  // OpenAI 请求强制附加 stream=true
+  forceStream: boolean;
   // Vertex AI 专用字段
   project: string;
   location: string;
@@ -143,7 +145,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
 
   const loadAllConfigs = async () => {
     const config = await getConfig();
-    setAiConfigs(config.aiConfigs || []);
+    setAiConfigs((config.aiConfigs || []).map((ai: any) => ({
+      ...ai,
+      useResponses: !!ai.useResponses,
+      forceStream: !!ai.forceStream,
+    })));
     const mcps = await getMCPServers();
     setMcpServers(mcps || []);
     if (config.memory) setMemoryConfig(config.memory);
@@ -520,6 +526,7 @@ const ProviderSettings: React.FC<ProviderSettingsProps> = ({
       timeout: 60,
       isDefault: configs.length === 0,
       useResponses: false,
+      forceStream: false,
       project: '',
       location: 'us-central1',
       credentialsJson: '',
@@ -966,6 +973,15 @@ const ProviderEditView: React.FC<ProviderEditViewProps> = ({
             <div className="flex items-center justify-between">
               <label className={`text-sm ${colors.isDark ? 'text-slate-400' : 'text-slate-500'}`}>使用 Responses API</label>
               <ToggleSwitch checked={config.useResponses} onChange={v => onChange({ ...config, useResponses: v })} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <label className={`text-sm ${colors.isDark ? 'text-slate-400' : 'text-slate-500'}`}>强制附加 stream=true</label>
+                <p className={`text-xs mt-1 ${colors.isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                  开启后会在 OpenAI 请求中带上 `stream: true`；关闭则保持原有行为。
+                </p>
+              </div>
+              <ToggleSwitch checked={config.forceStream} onChange={v => onChange({ ...config, forceStream: v })} />
             </div>
             <div>
               <label className={`block text-sm mb-1.5 ${colors.isDark ? 'text-slate-400' : 'text-slate-500'}`}>token 参数名</label>

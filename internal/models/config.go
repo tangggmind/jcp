@@ -42,6 +42,8 @@ type AIConfig struct {
 	IsDefault      bool                 `json:"isDefault"`
 	// OpenAI Responses API 开关
 	UseResponses bool `json:"useResponses"`
+	// OpenAI 请求是否强制附加 stream=true（默认 false）
+	ForceStream bool `json:"forceStream"`
 	// 不支持 system role（自动检测，用户不可见）
 	NoSystemRole bool `json:"noSystemRole"`
 	// Vertex AI 专用字段

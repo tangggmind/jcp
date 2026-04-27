@@ -29,16 +29,18 @@ type OpenAIModel struct {
 	Client         *openai.Client
 	ModelName      string
 	TokenParamMode string
+	ForceStream    bool
 	NoSystemRole   bool // 不支持 system role 时需要降级处理
 }
 
 // NewOpenAIModel 创建 OpenAI 模型
-func NewOpenAIModel(modelName string, cfg openai.ClientConfig, noSystemRole bool, tokenParamMode string) *OpenAIModel {
+func NewOpenAIModel(modelName string, cfg openai.ClientConfig, noSystemRole bool, tokenParamMode string, forceStream bool) *OpenAIModel {
 	client := openai.NewClientWithConfig(cfg)
 	return &OpenAIModel{
 		Client:         client,
 		ModelName:      modelName,
 		TokenParamMode: tokenParamMode,
+		ForceStream:    forceStream,
 		NoSystemRole:   noSystemRole,
 	}
 }
@@ -64,6 +66,15 @@ func (o *OpenAIModel) generate(ctx context.Context, req *model.LLMRequest) iter.
 			yield(nil, err)
 			return
 		}
+		if o.ForceStream {
+			llmResp, err := o.generateFinalFromForcedStream(ctx, openaiReq)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			yield(llmResp, nil)
+			return
+		}
 
 		resp, err := o.Client.CreateChatCompletion(ctx, openaiReq)
 		if err != nil {
@@ -86,6 +97,45 @@ func (o *OpenAIModel) generate(ctx context.Context, req *model.LLMRequest) iter.
 
 		yield(llmResp, nil)
 	}
+}
+
+func (o *OpenAIModel) generateFinalFromForcedStream(ctx context.Context, openaiReq openai.ChatCompletionRequest) (*model.LLMResponse, error) {
+	openaiReq.Stream = true
+	stream, err := o.Client.CreateChatCompletionStream(ctx, openaiReq)
+	if err != nil {
+		retryReq, ok := buildCompatRetryRequest(openaiReq, err)
+		if ok {
+			retryReq.Stream = true
+			modelLog.Warn("模型 [%s] 强制 stream 请求参数不兼容，已自动调整后重试: %v", o.ModelName, err)
+			stream, err = o.Client.CreateChatCompletionStream(ctx, retryReq)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+
+	var finalResp *model.LLMResponse
+	var streamErr error
+	o.processStream(stream, func(resp *model.LLMResponse, err error) bool {
+		if err != nil {
+			streamErr = err
+			return false
+		}
+		if resp != nil && !resp.Partial {
+			finalResp = resp
+			return false
+		}
+		return true
+	})
+
+	if streamErr != nil {
+		return nil, streamErr
+	}
+	if finalResp == nil {
+		return nil, errors.New("强制 stream 模式未返回最终响应")
+	}
+	return finalResp, nil
 }
 
 // generateStream 流式生成

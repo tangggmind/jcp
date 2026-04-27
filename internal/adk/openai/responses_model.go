@@ -35,11 +35,12 @@ type ResponsesModel struct {
 	baseURL      string
 	apiKey       string
 	modelName    string
+	ForceStream  bool
 	NoSystemRole bool // 不支持 system role 时需要降级处理
 }
 
 // NewResponsesModel 创建 Responses API 模型
-func NewResponsesModel(modelName, apiKey, baseURL string, httpClient HTTPDoer, noSystemRole bool) *ResponsesModel {
+func NewResponsesModel(modelName, apiKey, baseURL string, httpClient HTTPDoer, noSystemRole bool, forceStream bool) *ResponsesModel {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -48,6 +49,7 @@ func NewResponsesModel(modelName, apiKey, baseURL string, httpClient HTTPDoer, n
 		baseURL:      strings.TrimRight(baseURL, "/"),
 		apiKey:       apiKey,
 		modelName:    modelName,
+		ForceStream:  forceStream,
 		NoSystemRole: noSystemRole,
 	}
 }
@@ -95,6 +97,15 @@ func (r *ResponsesModel) generate(ctx context.Context, req *model.LLMRequest) it
 			yield(nil, err)
 			return
 		}
+		if r.ForceStream {
+			llmResp, err := r.generateFinalFromForcedStream(ctx, apiReq)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			yield(llmResp, nil)
+			return
+		}
 		apiReq.Stream = false
 
 		body, err := json.Marshal(apiReq)
@@ -129,6 +140,47 @@ func (r *ResponsesModel) generate(ctx context.Context, req *model.LLMRequest) it
 		}
 		yield(llmResp, nil)
 	}
+}
+
+func (r *ResponsesModel) generateFinalFromForcedStream(ctx context.Context, apiReq CreateResponseRequest) (*model.LLMResponse, error) {
+	apiReq.Stream = true
+	body, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	}
+
+	resp, err := r.doRequest(ctx, body, true)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Responses API 强制流式错误 (HTTP %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var finalResp *model.LLMResponse
+	var streamErr error
+	r.processResponsesStream(resp.Body, func(llmResp *model.LLMResponse, err error) bool {
+		if err != nil {
+			streamErr = err
+			return false
+		}
+		if llmResp != nil && !llmResp.Partial {
+			finalResp = llmResp
+			return false
+		}
+		return true
+	})
+
+	if streamErr != nil {
+		return nil, streamErr
+	}
+	if finalResp == nil {
+		return nil, fmt.Errorf("Responses API 强制流式未返回最终响应")
+	}
+	return finalResp, nil
 }
 
 // generateStream 流式生成
