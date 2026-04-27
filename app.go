@@ -48,6 +48,7 @@ type App struct {
 	meetingService    *meeting.Service
 	sessionService    *services.SessionService
 	strategyService   *services.StrategyService
+	reviewService     *services.ReviewService
 	agentContainer    *agent.Container
 	toolRegistry      *tools.Registry
 	mcpManager        *mcp.Manager
@@ -157,6 +158,12 @@ func NewApp() *App {
 	// 初始化策略服务
 	strategyService := services.NewStrategyService(dataDir)
 
+	// 初始化复盘服务。失败不阻断主应用，API 会返回明确错误。
+	reviewService, err := services.NewReviewService(dataDir)
+	if err != nil {
+		log.Warn("Review service init failed: %v", err)
+	}
+
 	// 初始化Agent容器（直接从StrategyService获取数据）
 	agentContainer := agent.NewContainer()
 	agentContainer.LoadAgents(strategyService.GetAllAgents())
@@ -199,6 +206,7 @@ func NewApp() *App {
 		meetingService:      meetingService,
 		sessionService:      sessionService,
 		strategyService:     strategyService,
+		reviewService:       reviewService,
 		agentContainer:      agentContainer,
 		toolRegistry:        toolRegistry,
 		mcpManager:          mcpManager,
@@ -258,6 +266,9 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 	if a.marketPusher != nil {
 		a.marketPusher.Stop()
+	}
+	if a.reviewService != nil {
+		_ = a.reviewService.Close()
 	}
 	logger.Close()
 }

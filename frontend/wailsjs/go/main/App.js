@@ -34,6 +34,14 @@ export function ClearSessionMessages(arg1) {
   return window['go']['main']['App']['ClearSessionMessages'](arg1);
 }
 
+export function CompareReviewArticles(arg1) {
+  return window['go']['main']['App']['CompareReviewArticles'](arg1);
+}
+
+export function CreateDailyReview(arg1) {
+  return window['go']['main']['App']['CreateDailyReview'](arg1);
+}
+
 export function DeleteAgentConfig(arg1) {
   return window['go']['main']['App']['DeleteAgentConfig'](arg1);
 }
@@ -42,12 +50,24 @@ export function DeleteMCPServer(arg1) {
   return window['go']['main']['App']['DeleteMCPServer'](arg1);
 }
 
+export function DeleteReviewArticle(arg1) {
+  return window['go']['main']['App']['DeleteReviewArticle'](arg1);
+}
+
+export function DeleteReviewTemplate(arg1) {
+  return window['go']['main']['App']['DeleteReviewTemplate'](arg1);
+}
+
 export function DeleteStrategy(arg1) {
   return window['go']['main']['App']['DeleteStrategy'](arg1);
 }
 
 export function DoUpdate() {
   return window['go']['main']['App']['DoUpdate']();
+}
+
+export function DownloadReviewImage(arg1) {
+  return window['go']['main']['App']['DownloadReviewImage'](arg1);
 }
 
 export function EnhancePrompt(arg1) {
@@ -150,6 +170,26 @@ export function GetOrderBook(arg1) {
   return window['go']['main']['App']['GetOrderBook'](arg1);
 }
 
+export function GetReviewArticle(arg1) {
+  return window['go']['main']['App']['GetReviewArticle'](arg1);
+}
+
+export function GetReviewArticles(arg1) {
+  return window['go']['main']['App']['GetReviewArticles'](arg1);
+}
+
+export function GetReviewAssetBase64(arg1) {
+  return window['go']['main']['App']['GetReviewAssetBase64'](arg1);
+}
+
+export function GetReviewSummaryArticle() {
+  return window['go']['main']['App']['GetReviewSummaryArticle']();
+}
+
+export function GetReviewTemplates() {
+  return window['go']['main']['App']['GetReviewTemplates']();
+}
+
 export function GetSessionMessages(arg1) {
   return window['go']['main']['App']['GetSessionMessages'](arg1);
 }
@@ -194,6 +234,10 @@ export function OpenURL(arg1) {
   return window['go']['main']['App']['OpenURL'](arg1);
 }
 
+export function RebuildReviewIndex() {
+  return window['go']['main']['App']['RebuildReviewIndex']();
+}
+
 export function RemoveFromWatchlist(arg1) {
   return window['go']['main']['App']['RemoveFromWatchlist'](arg1);
 }
@@ -208,6 +252,18 @@ export function RetryAgent(arg1, arg2, arg3) {
 
 export function RetryAgentAndContinue(arg1) {
   return window['go']['main']['App']['RetryAgentAndContinue'](arg1);
+}
+
+export function SaveReviewArticle(arg1) {
+  return window['go']['main']['App']['SaveReviewArticle'](arg1);
+}
+
+export function SaveReviewPastedImage(arg1) {
+  return window['go']['main']['App']['SaveReviewPastedImage'](arg1);
+}
+
+export function SaveReviewTemplate(arg1) {
+  return window['go']['main']['App']['SaveReviewTemplate'](arg1);
 }
 
 export function SearchStocks(arg1) {

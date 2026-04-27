@@ -23,13 +23,23 @@ export function CheckForUpdate():Promise<services.UpdateInfo>;
 
 export function ClearSessionMessages(arg1:string):Promise<string>;
 
+export function CompareReviewArticles(arg1:models.CompareReviewRequest):Promise<models.CompareReviewResult>;
+
+export function CreateDailyReview(arg1:models.CreateDailyReviewRequest):Promise<models.ReviewArticleDetail>;
+
 export function DeleteAgentConfig(arg1:string):Promise<string>;
 
 export function DeleteMCPServer(arg1:string):Promise<string>;
 
+export function DeleteReviewArticle(arg1:string):Promise<string>;
+
+export function DeleteReviewTemplate(arg1:string):Promise<string>;
+
 export function DeleteStrategy(arg1:string):Promise<string>;
 
 export function DoUpdate():Promise<string>;
+
+export function DownloadReviewImage(arg1:models.DownloadReviewImageRequest):Promise<models.SaveReviewImageResult>;
 
 export function EnhancePrompt(arg1:main.EnhancePromptRequest):Promise<main.EnhancePromptResponse>;
 
@@ -81,6 +91,16 @@ export function GetOrCreateSession(arg1:string,arg2:string):Promise<models.Stock
 
 export function GetOrderBook(arg1:string):Promise<models.OrderBook>;
 
+export function GetReviewArticle(arg1:string):Promise<models.ReviewArticleDetail>;
+
+export function GetReviewArticles(arg1:models.ReviewListRequest):Promise<models.ReviewListResult>;
+
+export function GetReviewAssetBase64(arg1:string):Promise<string>;
+
+export function GetReviewSummaryArticle():Promise<models.ReviewArticleDetail>;
+
+export function GetReviewTemplates():Promise<Array<models.ReviewTemplate>>;
+
 export function GetSessionMessages(arg1:string):Promise<Array<models.ChatMessage>>;
 
 export function GetStockMoves(arg1:string,arg2:number,arg3:number):Promise<models.StockMoveList>;
@@ -103,6 +123,8 @@ export function NotifyFrontendReady():Promise<void>;
 
 export function OpenURL(arg1:string):Promise<void>;
 
+export function RebuildReviewIndex():Promise<string>;
+
 export function RemoveFromWatchlist(arg1:string):Promise<string>;
 
 export function RestartApp():Promise<string>;
@@ -110,6 +132,12 @@ export function RestartApp():Promise<string>;
 export function RetryAgent(arg1:string,arg2:string,arg3:string):Promise<models.ChatMessage>;
 
 export function RetryAgentAndContinue(arg1:string):Promise<Array<models.ChatMessage>>;
+
+export function SaveReviewArticle(arg1:models.SaveReviewArticleRequest):Promise<models.ReviewArticleDetail>;
+
+export function SaveReviewPastedImage(arg1:models.SaveReviewImageRequest):Promise<models.SaveReviewImageResult>;
+
+export function SaveReviewTemplate(arg1:models.SaveReviewTemplateRequest):Promise<models.ReviewTemplate>;
 
 export function SearchStocks(arg1:string):Promise<Array<services.StockSearchResult>>;
 

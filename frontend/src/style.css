@@ -291,6 +291,7 @@
     .hover\:text-accent:hover { color: var(--accent); }
     .hover\:text-accent-2:hover { color: var(--accent-2); }
     .hover\:bg-accent:hover { background-color: var(--accent); }
+    .hover\:bg-accent-2:hover { background-color: var(--accent-2); }
     .hover\:border-accent:hover { border-color: var(--accent); }
     .hover\:border-accent\/40:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 

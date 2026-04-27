@@ -805,6 +805,137 @@ export namespace models {
 	        this.meetingMode = source["meetingMode"];
 	    }
 	}
+	export class CompareReviewItem {
+	    articleId: string;
+	    date: string;
+	    title: string;
+	    summary: string;
+	    tags: string[];
+	    stocks: string[];
+	    profitLoss: number;
+	    emotion: string;
+	    disciplineScore?: number;
+	    sections: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new CompareReviewItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.articleId = source["articleId"];
+	        this.date = source["date"];
+	        this.title = source["title"];
+	        this.summary = source["summary"];
+	        this.tags = source["tags"];
+	        this.stocks = source["stocks"];
+	        this.profitLoss = source["profitLoss"];
+	        this.emotion = source["emotion"];
+	        this.disciplineScore = source["disciplineScore"];
+	        this.sections = source["sections"];
+	    }
+	}
+	export class CompareReviewRequest {
+	    articleIds: string[];
+	    startDate: string;
+	    endDate: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CompareReviewRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.articleIds = source["articleIds"];
+	        this.startDate = source["startDate"];
+	        this.endDate = source["endDate"];
+	    }
+	}
+	export class CompareStatItem {
+	    name: string;
+	    count: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CompareStatItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.count = source["count"];
+	    }
+	}
+	export class CompareReviewResult {
+	    items: CompareReviewItem[];
+	    tagStats: CompareStatItem[];
+	    stockStats: CompareStatItem[];
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CompareReviewResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], CompareReviewItem);
+	        this.tagStats = this.convertValues(source["tagStats"], CompareStatItem);
+	        this.stockStats = this.convertValues(source["stockStats"], CompareStatItem);
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class CreateDailyReviewRequest {
+	    date: string;
+	    templateId: string;
+	    title: string;
+	    stocks: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateDailyReviewRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.date = source["date"];
+	        this.templateId = source["templateId"];
+	        this.title = source["title"];
+	        this.stocks = source["stocks"];
+	    }
+	}
+	export class DownloadReviewImageRequest {
+	    articleId: string;
+	    date: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DownloadReviewImageRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.articleId = source["articleId"];
+	        this.date = source["date"];
+	        this.url = source["url"];
+	    }
+	}
 	
 	export class EquityPledge {
 	    records?: any[];
@@ -1491,6 +1622,250 @@ export namespace models {
 	
 	
 	
+	export class ReviewArticle {
+	    id: string;
+	    type: string;
+	    date: string;
+	    title: string;
+	    filePath: string;
+	    templateId: string;
+	    templateName: string;
+	    summary: string;
+	    tags: string[];
+	    stocks: string[];
+	    profitLoss: number;
+	    emotion: string;
+	    disciplineScore?: number;
+	    imageCount: number;
+	    createdAt: number;
+	    updatedAt: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewArticle(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.type = source["type"];
+	        this.date = source["date"];
+	        this.title = source["title"];
+	        this.filePath = source["filePath"];
+	        this.templateId = source["templateId"];
+	        this.templateName = source["templateName"];
+	        this.summary = source["summary"];
+	        this.tags = source["tags"];
+	        this.stocks = source["stocks"];
+	        this.profitLoss = source["profitLoss"];
+	        this.emotion = source["emotion"];
+	        this.disciplineScore = source["disciplineScore"];
+	        this.imageCount = source["imageCount"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class ReviewArticleDetail {
+	    article: ReviewArticle;
+	    content: string;
+	    warning?: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewArticleDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.article = this.convertValues(source["article"], ReviewArticle);
+	        this.content = source["content"];
+	        this.warning = source["warning"];
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ReviewListRequest {
+	    query: string;
+	    type: string;
+	    startDate: string;
+	    endDate: string;
+	    tags: string[];
+	    stocks: string[];
+	    page: number;
+	    pageSize: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewListRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.query = source["query"];
+	        this.type = source["type"];
+	        this.startDate = source["startDate"];
+	        this.endDate = source["endDate"];
+	        this.tags = source["tags"];
+	        this.stocks = source["stocks"];
+	        this.page = source["page"];
+	        this.pageSize = source["pageSize"];
+	    }
+	}
+	export class ReviewListResult {
+	    items: ReviewArticle[];
+	    total: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewListResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], ReviewArticle);
+	        this.total = source["total"];
+	        this.error = source["error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ReviewTemplate {
+	    id: string;
+	    name: string;
+	    description: string;
+	    content: string;
+	    isBuiltin: boolean;
+	    isDefault: boolean;
+	    createdAt: number;
+	    updatedAt: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewTemplate(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.content = source["content"];
+	        this.isBuiltin = source["isBuiltin"];
+	        this.isDefault = source["isDefault"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class SaveReviewArticleRequest {
+	    id: string;
+	    title: string;
+	    content: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveReviewArticleRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.title = source["title"];
+	        this.content = source["content"];
+	    }
+	}
+	export class SaveReviewImageRequest {
+	    articleId: string;
+	    date: string;
+	    fileName: string;
+	    mimeType: string;
+	    dataBase64: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveReviewImageRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.articleId = source["articleId"];
+	        this.date = source["date"];
+	        this.fileName = source["fileName"];
+	        this.mimeType = source["mimeType"];
+	        this.dataBase64 = source["dataBase64"];
+	    }
+	}
+	export class SaveReviewImageResult {
+	    assetId: string;
+	    filePath: string;
+	    markdownPath: string;
+	    markdownText: string;
+	    mimeType: string;
+	    size: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveReviewImageResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.assetId = source["assetId"];
+	        this.filePath = source["filePath"];
+	        this.markdownPath = source["markdownPath"];
+	        this.markdownText = source["markdownText"];
+	        this.mimeType = source["mimeType"];
+	        this.size = source["size"];
+	        this.error = source["error"];
+	    }
+	}
+	export class SaveReviewTemplateRequest {
+	    id: string;
+	    name: string;
+	    description: string;
+	    content: string;
+	    isDefault: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveReviewTemplateRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.content = source["content"];
+	        this.isDefault = source["isDefault"];
+	    }
+	}
 	
 	
 	export class Stock {

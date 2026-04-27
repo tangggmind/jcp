@@ -26,11 +26,22 @@ func main() {
 		}
 	}()
 
+	instanceLock, acquired, err := acquireSingleInstance("jcp-run-bigpig-single-instance")
+	if err != nil {
+		println("Single instance check failed:", err.Error())
+		return
+	}
+	if !acquired {
+		println("JCP is already running.")
+		return
+	}
+	defer instanceLock.Close()
+
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:           "韭菜盘",
 		Width:           1920,
 		Height:          1080,
