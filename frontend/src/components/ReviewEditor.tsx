@@ -1,5 +1,5 @@
-import React from 'react';
-import { Loader2, Save } from 'lucide-react';
+import React, { useRef } from 'react';
+import { ImagePlus, Loader2, Save } from 'lucide-react';
 
 interface ReviewEditorProps {
   content: string;
@@ -11,6 +11,7 @@ interface ReviewEditorProps {
   onSave: () => void;
   onImageFile?: (file: File) => Promise<string>;
   onNetworkImage?: (text: string) => Promise<string | null>;
+  onScreenshot?: () => Promise<string | null>;
 }
 
 export const ReviewEditor: React.FC<ReviewEditorProps> = ({
@@ -23,7 +24,10 @@ export const ReviewEditor: React.FC<ReviewEditorProps> = ({
   onSave,
   onImageFile,
   onNetworkImage,
+  onScreenshot,
 }) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   const insertTextAtCursor = (textarea: HTMLTextAreaElement, text: string) => {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -56,6 +60,15 @@ export const ReviewEditor: React.FC<ReviewEditorProps> = ({
     }
   };
 
+  const handleScreenshot = async () => {
+    if (!onScreenshot || disabled || uploading) return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const markdown = await onScreenshot();
+    if (!markdown) return;
+    insertTextAtCursor(textarea, `\n${markdown}\n`);
+  };
+
   const handlePaste = async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const files = event.clipboardData.files;
     if (files && files.length > 0) {
@@ -83,17 +96,30 @@ export const ReviewEditor: React.FC<ReviewEditorProps> = ({
     <div className="fin-panel-strong flex h-full min-h-0 flex-col rounded-2xl border fin-divider">
       <div className="flex items-center justify-between border-b fin-divider px-3 py-2">
         <span className="fin-text-tertiary text-xs">{uploading ? '图片上传中...' : dirty ? '未保存修改' : '内容已同步'}</span>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving || disabled}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          保存
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleScreenshot()}
+            disabled={disabled || uploading || !onScreenshot}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent/15 px-3 py-1.5 text-xs font-medium text-accent-2 transition-colors hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+            title="框选屏幕截图并插入到光标位置"
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+            截图插入
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving || disabled}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            保存
+          </button>
+        </div>
       </div>
       <textarea
+        ref={textareaRef}
         value={content}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}

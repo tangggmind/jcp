@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, BookOpen, Camera, Loader2, Plus, RefreshCw, Settings, SplitSquareHorizontal, X } from 'lucide-react';
 import type { Stock } from '../types';
 import { reviewService, REVIEW_TYPE_SUMMARY, type ReviewArticle, type ReviewArticleDetail, type ReviewTemplate } from '../services/reviewService';
@@ -8,6 +8,7 @@ import { ReviewPreview } from './ReviewPreview';
 import { ReviewTemplateDialog } from './ReviewTemplateDialog';
 import { ReviewCompare } from './ReviewCompare';
 import { ReviewOcrDialog } from './ReviewOcrDialog';
+import { ReviewScreenshotDialog } from './ReviewScreenshotDialog';
 import type { CompareReviewResult } from '../services/reviewService';
 
 interface ReviewDialogProps {
@@ -35,7 +36,9 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showOcr, setShowOcr] = useState(false);
+  const [showScreenshot, setShowScreenshot] = useState(false);
   const [compareResult, setCompareResult] = useState<CompareReviewResult | null>(null);
+  const screenshotResolverRef = useRef<((dataUrl: string | null) => void) | null>(null);
   const selectedCreateTemplate = templates.find(template => template.id === createTemplateId);
 
   const loadWorkbench = useCallback(async () => {
@@ -197,6 +200,53 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
       setUploadingImage(false);
     }
   }, [current]);
+
+  const requestScreenshotDataUrl = useCallback(() => {
+    screenshotResolverRef.current?.(null);
+    setShowScreenshot(true);
+    return new Promise<string | null>((resolve) => {
+      screenshotResolverRef.current = resolve;
+    });
+  }, []);
+
+  const closeScreenshotDialog = useCallback(() => {
+    setShowScreenshot(false);
+    screenshotResolverRef.current?.(null);
+    screenshotResolverRef.current = null;
+  }, []);
+
+  const handleScreenshotCaptured = useCallback((dataUrl: string) => {
+    setShowScreenshot(false);
+    screenshotResolverRef.current?.(dataUrl);
+    screenshotResolverRef.current = null;
+  }, []);
+
+  const insertScreenshotImage = useCallback(async () => {
+    if (!current) {
+      setError('请先打开复盘文章');
+      return null;
+    }
+    const dataUrl = await requestScreenshotDataUrl();
+    if (!dataUrl) return null;
+
+    setUploadingImage(true);
+    setError('');
+    try {
+      const result = await reviewService.savePastedImage({
+        articleId: current.article.id,
+        date: current.article.date,
+        fileName: `screenshot-${Date.now()}.png`,
+        mimeType: 'image/png',
+        dataBase64: dataUrl,
+      });
+      return result.markdownText;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存截图失败');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  }, [current, requestScreenshotDataUrl]);
 
   const runCompare = useCallback(async () => {
     if (selectedCompareIds.length < 2) {
@@ -432,6 +482,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
                       onSave={() => void saveCurrentArticle()}
                       onImageFile={uploadImageFile}
                       onNetworkImage={downloadNetworkImage}
+                      onScreenshot={insertScreenshotImage}
                     />
                     <ReviewPreview content={content} />
                   </div>
@@ -449,6 +500,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
                     onSave={() => void saveCurrentArticle()}
                     onImageFile={uploadImageFile}
                     onNetworkImage={downloadNetworkImage}
+                    onScreenshot={insertScreenshotImage}
                   />
                 )}
               </div>
@@ -536,6 +588,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
         onChanged={() => void loadWorkbench()}
       />
       <ReviewOcrDialog isOpen={showOcr} onClose={() => setShowOcr(false)} />
+      <ReviewScreenshotDialog isOpen={showScreenshot} onClose={closeScreenshotDialog} onCaptured={handleScreenshotCaptured} />
     </div>
   );
 };
