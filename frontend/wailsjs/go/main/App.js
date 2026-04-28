@@ -30,6 +30,10 @@ export function CaptureReviewScreen() {
   return window['go']['main']['App']['CaptureReviewScreen']();
 }
 
+export function CaptureReviewScreenClip() {
+  return window['go']['main']['App']['CaptureReviewScreenClip']();
+}
+
 export function CheckForUpdate() {
   return window['go']['main']['App']['CheckForUpdate']();
 }

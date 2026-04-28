@@ -21,6 +21,8 @@ export function CancelMeeting(arg1:string):Promise<boolean>;
 
 export function CaptureReviewScreen():Promise<models.ReviewScreenCaptureResult>;
 
+export function CaptureReviewScreenClip():Promise<models.ReviewScreenCaptureResult>;
+
 export function CheckForUpdate():Promise<services.UpdateInfo>;
 
 export function ClearSessionMessages(arg1:string):Promise<string>;

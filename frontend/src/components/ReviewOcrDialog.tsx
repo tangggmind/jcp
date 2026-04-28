@@ -1,33 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Camera, Check, Copy, FileText, Image as ImageIcon, Loader2, RefreshCw, X } from 'lucide-react';
 import { ClipboardSetText } from '../../wailsjs/runtime/runtime';
-import { reviewService, type ReviewScreenCaptureResult } from '../services/reviewService';
+import { reviewService } from '../services/reviewService';
 
 interface ReviewOcrDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface ClientRectState {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-type OcrPhase = 'preview' | 'selecting';
-
 export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClose }) => {
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  const dragStartRef = useRef<Point | null>(null);
-  const [phase, setPhase] = useState<OcrPhase>('preview');
-  const [screen, setScreen] = useState<ReviewScreenCaptureResult | null>(null);
-  const [selection, setSelection] = useState<ClientRectState | null>(null);
   const [previewDataUrl, setPreviewDataUrl] = useState('');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
@@ -41,14 +22,11 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
     setResult('');
     setCopied(false);
     setPreviewDataUrl('');
-    setSelection(null);
     try {
-      const nextScreen = await reviewService.captureScreen();
-      setScreen(nextScreen);
-      setPhase('selecting');
+      const screenClip = await reviewService.captureScreenClip();
+      setPreviewDataUrl(screenClip.dataBase64);
     } catch (err) {
       setError(err instanceof Error ? err.message : '截图失败');
-      setPhase('preview');
     } finally {
       setCapturing(false);
     }
@@ -56,13 +34,10 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
 
   useEffect(() => {
     if (!isOpen) return;
-    setPhase('preview');
-    setScreen(null);
     setPreviewDataUrl('');
     setResult('');
     setCopied(false);
     setError('');
-    setSelection(null);
     void startCapture();
   }, [isOpen, startCapture]);
 
@@ -70,89 +45,12 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (phase === 'selecting' && previewDataUrl) {
-          setPhase('preview');
-          setSelection(null);
-          return;
-        }
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, phase, previewDataUrl]);
-
-  const getImageRelativePoint = (event: React.PointerEvent): Point | null => {
-    const image = imageRef.current;
-    if (!image) return null;
-    const bounds = getRenderedImageRect(image);
-    if (
-      event.clientX < bounds.left ||
-      event.clientX > bounds.left + bounds.width ||
-      event.clientY < bounds.top ||
-      event.clientY > bounds.top + bounds.height
-    ) {
-      return null;
-    }
-    return { x: event.clientX, y: event.clientY };
-  };
-
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (phase !== 'selecting') return;
-    const point = getImageRelativePoint(event);
-    if (!point) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragStartRef.current = point;
-    setSelection({ left: point.x, top: point.y, width: 0, height: 0 });
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (phase !== 'selecting' || !dragStartRef.current) return;
-    const image = imageRef.current;
-    if (!image) return;
-    const bounds = getRenderedImageRect(image);
-    const currentX = clamp(event.clientX, bounds.left, bounds.left + bounds.width);
-    const currentY = clamp(event.clientY, bounds.top, bounds.top + bounds.height);
-    const start = dragStartRef.current;
-    setSelection(normalizeClientRect(start.x, start.y, currentX, currentY));
-  };
-
-  const handlePointerUp = async (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    if (phase !== 'selecting' || !dragStartRef.current || !screen) {
-      dragStartRef.current = null;
-      return;
-    }
-    const image = imageRef.current;
-    if (!image) {
-      dragStartRef.current = null;
-      return;
-    }
-    const bounds = getRenderedImageRect(image);
-    const finalSelection = normalizeClientRect(
-      dragStartRef.current.x,
-      dragStartRef.current.y,
-      clamp(event.clientX, bounds.left, bounds.left + bounds.width),
-      clamp(event.clientY, bounds.top, bounds.top + bounds.height),
-    );
-    dragStartRef.current = null;
-
-    if (finalSelection.width < 8 || finalSelection.height < 8) {
-      setSelection(null);
-      return;
-    }
-
-    try {
-      const dataUrl = await cropSelection(screen.dataBase64, finalSelection, imageRef.current);
-      setPreviewDataUrl(dataUrl);
-      setPhase('preview');
-      setSelection(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '裁剪截图失败');
-    }
-  };
+  }, [isOpen, onClose]);
 
   const runOcr = useCallback(async () => {
     if (!previewDataUrl) {
@@ -192,47 +90,6 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  if (phase === 'selecting' && screen?.dataBase64) {
-    return (
-      <div
-        className="fixed inset-0 z-[140] cursor-crosshair select-none bg-black"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={(event) => void handlePointerUp(event)}
-      >
-        <div className="pointer-events-none fixed left-1/2 top-4 z-[142] -translate-x-1/2 rounded-2xl border border-white/20 bg-black/70 px-4 py-2 text-center shadow-2xl backdrop-blur">
-          <div className="text-sm font-semibold text-white">按住鼠标拖拽框选 OCR 区域</div>
-          <div className="mt-1 text-xs text-white/60">松开鼠标后进入预览，Esc 取消</div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="fixed right-4 top-4 z-[143] rounded-xl bg-black/60 p-2 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <img
-          ref={imageRef}
-          src={screen.dataBase64}
-          className="h-full w-full object-contain"
-          draggable={false}
-          alt="全屏截图"
-        />
-        {selection ? (
-          <div
-            className="pointer-events-none fixed z-[142] border-2 border-cyan-300 bg-cyan-300/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
-            style={{
-              left: selection.left,
-              top: selection.top,
-              width: selection.width,
-              height: selection.height,
-            }}
-          />
-        ) : null}
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
       <section className="fin-panel-strong flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border fin-divider shadow-2xl">
@@ -243,7 +100,7 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
             </div>
             <div>
               <h3 className="fin-text-primary text-base font-semibold">AI OCR 识别</h3>
-              <p className="fin-text-tertiary text-xs">框选截图后，点击 OCR 解析将图片发送给当前默认 AI。</p>
+              <p className="fin-text-tertiary text-xs">使用 Windows 原生截图框选区域，再发送给当前默认 AI 解析。</p>
             </div>
           </div>
           <button
@@ -283,7 +140,7 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
               {capturing ? (
                 <div className="fin-text-secondary flex items-center gap-2 text-sm">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  正在最小化并截图...
+                  正在启动系统截图，请直接在屏幕上框选区域...
                 </div>
               ) : previewDataUrl ? (
                 <img
@@ -293,7 +150,7 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
                 />
               ) : (
                 <div className="fin-text-tertiary rounded-xl border border-dashed fin-divider px-6 py-10 text-center text-sm">
-                  截图完成后在这里预览框选区域。
+                  点击“重新截图”后，使用 Windows 截图框选要识别的区域。
                 </div>
               )}
             </div>
@@ -355,80 +212,3 @@ export const ReviewOcrDialog: React.FC<ReviewOcrDialogProps> = ({ isOpen, onClos
     </div>
   );
 };
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function normalizeClientRect(startX: number, startY: number, endX: number, endY: number): ClientRectState {
-  return {
-    left: Math.min(startX, endX),
-    top: Math.min(startY, endY),
-    width: Math.abs(endX - startX),
-    height: Math.abs(endY - startY),
-  };
-}
-
-function cropSelection(sourceDataUrl: string, selection: ClientRectState, imageElement: HTMLImageElement | null): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!imageElement) {
-      reject(new Error('截图预览未加载'));
-      return;
-    }
-    const imageBounds = getRenderedImageRect(imageElement);
-    const scaleX = imageElement.naturalWidth / imageBounds.width;
-    const scaleY = imageElement.naturalHeight / imageBounds.height;
-    const sx = Math.max(0, Math.round((selection.left - imageBounds.left) * scaleX));
-    const sy = Math.max(0, Math.round((selection.top - imageBounds.top) * scaleY));
-    const sw = Math.max(1, Math.round(selection.width * scaleX));
-    const sh = Math.max(1, Math.round(selection.height * scaleY));
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = sw;
-      canvas.height = sh;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('浏览器不支持 Canvas 截图裁剪'));
-        return;
-      }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('截图图片加载失败'));
-    img.src = sourceDataUrl;
-  });
-}
-
-function getRenderedImageRect(imageElement: HTMLImageElement): ClientRectState {
-  const bounds = imageElement.getBoundingClientRect();
-  const naturalWidth = imageElement.naturalWidth;
-  const naturalHeight = imageElement.naturalHeight;
-  if (naturalWidth <= 0 || naturalHeight <= 0 || bounds.width <= 0 || bounds.height <= 0) {
-    return {
-      left: bounds.left,
-      top: bounds.top,
-      width: bounds.width,
-      height: bounds.height,
-    };
-  }
-
-  const imageRatio = naturalWidth / naturalHeight;
-  const boxRatio = bounds.width / bounds.height;
-  let renderedWidth = bounds.width;
-  let renderedHeight = bounds.height;
-
-  if (boxRatio > imageRatio) {
-    renderedWidth = bounds.height * imageRatio;
-  } else {
-    renderedHeight = bounds.width / imageRatio;
-  }
-
-  return {
-    left: bounds.left + (bounds.width - renderedWidth) / 2,
-    top: bounds.top + (bounds.height - renderedHeight) / 2,
-    width: renderedWidth,
-    height: renderedHeight,
-  };
-}

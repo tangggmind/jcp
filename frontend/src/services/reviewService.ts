@@ -277,6 +277,17 @@ export const reviewService = {
     return result;
   },
 
+  async captureScreenClip(): Promise<ReviewScreenCaptureResult> {
+    const result = await getBinding('CaptureReviewScreenClip')() as ReviewScreenCaptureResult;
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    if (!result.dataBase64?.startsWith('data:image/')) {
+      throw new Error('截图结果无效');
+    }
+    return result;
+  },
+
   async ocrImage(req: ReviewOCRRequest): Promise<ReviewOCRResult> {
     const result = await getBinding('OCRReviewImage')(req) as ReviewOCRResult;
     if (result.error) {
