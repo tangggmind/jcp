@@ -139,3 +139,20 @@ type CompareStatItem struct {
 	Name  string `json:"name"`
 	Count int    `json:"count"`
 }
+
+type ReviewScreenCaptureResult struct {
+	DataBase64 string `json:"dataBase64"`
+	Width      int    `json:"width"`
+	Height     int    `json:"height"`
+	Error      string `json:"error,omitempty"`
+}
+
+type ReviewOCRRequest struct {
+	DataBase64 string `json:"dataBase64"`
+	MimeType   string `json:"mimeType"`
+}
+
+type ReviewOCRResult struct {
+	Text  string `json:"text"`
+	Error string `json:"error,omitempty"`
+}

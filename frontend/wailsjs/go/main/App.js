@@ -26,6 +26,10 @@ export function CancelMeeting(arg1) {
   return window['go']['main']['App']['CancelMeeting'](arg1);
 }
 
+export function CaptureReviewScreen() {
+  return window['go']['main']['App']['CaptureReviewScreen']();
+}
+
 export function CheckForUpdate() {
   return window['go']['main']['App']['CheckForUpdate']();
 }
@@ -228,6 +232,10 @@ export function Greet(arg1) {
 
 export function NotifyFrontendReady() {
   return window['go']['main']['App']['NotifyFrontendReady']();
+}
+
+export function OCRReviewImage(arg1) {
+  return window['go']['main']['App']['OCRReviewImage'](arg1);
 }
 
 export function OpenURL(arg1) {

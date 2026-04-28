@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, BookOpen, Loader2, Plus, RefreshCw, Settings, SplitSquareHorizontal, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Camera, Loader2, Plus, RefreshCw, Settings, SplitSquareHorizontal, X } from 'lucide-react';
 import type { Stock } from '../types';
 import { reviewService, REVIEW_TYPE_SUMMARY, type ReviewArticle, type ReviewArticleDetail, type ReviewTemplate } from '../services/reviewService';
 import { ReviewArticleList } from './ReviewArticleList';
@@ -7,6 +7,7 @@ import { ReviewEditor } from './ReviewEditor';
 import { ReviewPreview } from './ReviewPreview';
 import { ReviewTemplateDialog } from './ReviewTemplateDialog';
 import { ReviewCompare } from './ReviewCompare';
+import { ReviewOcrDialog } from './ReviewOcrDialog';
 import type { CompareReviewResult } from '../services/reviewService';
 
 interface ReviewDialogProps {
@@ -33,6 +34,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showOcr, setShowOcr] = useState(false);
   const [compareResult, setCompareResult] = useState<CompareReviewResult | null>(null);
   const selectedCreateTemplate = templates.find(template => template.id === createTemplateId);
 
@@ -355,6 +357,14 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
               </div>
               <button
                 type="button"
+                onClick={() => setShowOcr(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-accent/15 px-3 py-2 text-xs font-medium text-accent-2 transition-colors hover:bg-accent/25"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                AI OCR
+              </button>
+              <button
+                type="button"
                 onClick={() => void runCompare()}
                 disabled={selectedCompareIds.length < 2}
                 className="rounded-xl bg-accent px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -525,6 +535,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({ isOpen, onClose, sel
         onClose={() => setShowTemplates(false)}
         onChanged={() => void loadWorkbench()}
       />
+      <ReviewOcrDialog isOpen={showOcr} onClose={() => setShowOcr(false)} />
     </div>
   );
 };

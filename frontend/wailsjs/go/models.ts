@@ -907,6 +907,7 @@ export namespace models {
 	    templateId: string;
 	    title: string;
 	    stocks: string[];
+	    marketSnapshot: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new CreateDailyReviewRequest(source);
@@ -918,6 +919,7 @@ export namespace models {
 	        this.templateId = source["templateId"];
 	        this.title = source["title"];
 	        this.stocks = source["stocks"];
+	        this.marketSnapshot = source["marketSnapshot"];
 	    }
 	}
 	export class DownloadReviewImageRequest {
@@ -1759,6 +1761,52 @@ export namespace models {
 		    }
 		    return a;
 		}
+	}
+	export class ReviewOCRRequest {
+	    dataBase64: string;
+	    mimeType: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewOCRRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dataBase64 = source["dataBase64"];
+	        this.mimeType = source["mimeType"];
+	    }
+	}
+	export class ReviewOCRResult {
+	    text: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewOCRResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.text = source["text"];
+	        this.error = source["error"];
+	    }
+	}
+	export class ReviewScreenCaptureResult {
+	    dataBase64: string;
+	    width: number;
+	    height: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReviewScreenCaptureResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dataBase64 = source["dataBase64"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	        this.error = source["error"];
+	    }
 	}
 	export class ReviewTemplate {
 	    id: string;

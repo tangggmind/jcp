@@ -134,6 +134,23 @@ export interface CompareReviewResult {
   error?: string;
 }
 
+export interface ReviewScreenCaptureResult {
+  dataBase64: string;
+  width: number;
+  height: number;
+  error?: string;
+}
+
+export interface ReviewOCRRequest {
+  dataBase64: string;
+  mimeType: string;
+}
+
+export interface ReviewOCRResult {
+  text: string;
+  error?: string;
+}
+
 type WailsFunction = (...args: unknown[]) => Promise<unknown>;
 
 function getBinding(name: string): WailsFunction {
@@ -245,6 +262,25 @@ export const reviewService = {
     const result = await getBinding('GetReviewAssetBase64')(filePath) as string;
     if (!result.startsWith('data:image/')) {
       throw new Error(result);
+    }
+    return result;
+  },
+
+  async captureScreen(): Promise<ReviewScreenCaptureResult> {
+    const result = await getBinding('CaptureReviewScreen')() as ReviewScreenCaptureResult;
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    if (!result.dataBase64?.startsWith('data:image/')) {
+      throw new Error('截图结果无效');
+    }
+    return result;
+  },
+
+  async ocrImage(req: ReviewOCRRequest): Promise<ReviewOCRResult> {
+    const result = await getBinding('OCRReviewImage')(req) as ReviewOCRResult;
+    if (result.error) {
+      throw new Error(result.error);
     }
     return result;
   },

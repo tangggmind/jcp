@@ -19,6 +19,8 @@ export function CancelInterruptedMeeting(arg1:string):Promise<boolean>;
 
 export function CancelMeeting(arg1:string):Promise<boolean>;
 
+export function CaptureReviewScreen():Promise<models.ReviewScreenCaptureResult>;
+
 export function CheckForUpdate():Promise<services.UpdateInfo>;
 
 export function ClearSessionMessages(arg1:string):Promise<string>;
@@ -120,6 +122,8 @@ export function GetWatchlist():Promise<Array<models.Stock>>;
 export function Greet(arg1:string):Promise<string>;
 
 export function NotifyFrontendReady():Promise<void>;
+
+export function OCRReviewImage(arg1:models.ReviewOCRRequest):Promise<models.ReviewOCRResult>;
 
 export function OpenURL(arg1:string):Promise<void>;
 
